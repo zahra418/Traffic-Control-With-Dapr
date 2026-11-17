@@ -135,4 +135,3 @@ API docs: http://localhost:6001/docs and http://localhost:6002/docs. Browsers bl
 
 - Dapr reads its config files only at startup. After changing a file in `dapr/components`, restart that service.
 - Never commit `secrets.json` or any real key.
-- The VisualSimulation front end (Phaser game, images, Paho client) comes from `EdwinVW/dapr-traffic-control`, folder `src/VisualSimulation`. Check its license before redistributing.
