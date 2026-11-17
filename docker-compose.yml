@@ -1,0 +1,117 @@
+name: traffic-control
+
+services:
+  # ---------- infrastructure ----------
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "4000:1080"
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./dapr/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  # ---------- VehicleRegistrationService ----------
+  vehicle-registration-service:
+    build: ./app/VehicleRegistrationService
+    environment:
+      DAPR_HTTP_PORT: "3500"
+    ports:
+      - "6002:6002"
+      - "3602:3500"
+
+  vehicle-registration-dapr:
+    image: daprio/daprd:1.18.7
+    command: ["./daprd", "--app-id", "vehicle-registration-service",
+              "--app-port", "6002", "--dapr-http-port", "3500",
+              "--resources-path", "/components"]
+    volumes:
+      - ./dapr/components-docker:/components:ro
+    network_mode: "service:vehicle-registration-service"
+    restart: on-failure
+    depends_on:
+      vehicle-registration-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ---------- FineCollectionService ----------
+  fine-collection-service:
+    build: ./app/FineCollectionService
+    environment:
+      DAPR_HTTP_PORT: "3500"
+    ports:
+      - "6001:6001"
+      - "3601:3500"
+
+  fine-collection-dapr:
+    image: daprio/daprd:1.18.7
+    command: ["./daprd", "--app-id", "fine-collection-service",
+              "--app-port", "6001", "--dapr-http-port", "3500",
+              "--resources-path", "/components"]
+    volumes:
+      - ./dapr/components-docker:/components:ro
+      - ./dapr/components/secrets.json:/secrets/secrets.json:ro
+    network_mode: "service:fine-collection-service"
+    restart: on-failure
+    depends_on:
+      fine-collection-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+
+  # ---------- TrafficControlService ----------
+  traffic-control-service:
+    build: ./app/TrafficControlService
+    environment:
+      DAPR_HTTP_PORT: "3500"
+    ports:
+      - "6000:6000"
+      - "3600:3500"
+
+  traffic-control-dapr:
+    image: daprio/daprd:1.18.7
+    command: ["./daprd", "--app-id", "traffic-control-service",
+              "--app-port", "6000", "--dapr-http-port", "3500",
+              "--resources-path", "/components"]
+    volumes:
+      - ./dapr/components-docker:/components:ro
+    network_mode: "service:traffic-control-service"
+    restart: on-failure
+    depends_on:
+      traffic-control-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started

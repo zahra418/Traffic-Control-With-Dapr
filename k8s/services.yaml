@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-registration-service
+  namespace: traffic-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: vehicle-registration-service }
+  template:
+    metadata:
+      labels: { app: vehicle-registration-service }
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "vehicle-registration-service"
+        dapr.io/app-port: "6002"
+    spec:
+      containers:
+        - name: vehicle-registration-service
+          image: vehicle-registration-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6002
+          readinessProbe:
+            httpGet: { path: /healthz, port: 6002 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vehicle-registration-service
+  namespace: traffic-control
+spec:
+  selector: { app: vehicle-registration-service }
+  ports:
+    - port: 6002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fine-collection-service
+  namespace: traffic-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: fine-collection-service }
+  template:
+    metadata:
+      labels: { app: fine-collection-service }
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "fine-collection-service"
+        dapr.io/app-port: "6001"
+    spec:
+      containers:
+        - name: fine-collection-service
+          image: fine-collection-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6001
+          readinessProbe:
+            httpGet: { path: /healthz, port: 6001 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fine-collection-service
+  namespace: traffic-control
+spec:
+  selector: { app: fine-collection-service }
+  ports:
+    - port: 6001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-control-service
+  namespace: traffic-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: traffic-control-service }
+  template:
+    metadata:
+      labels: { app: traffic-control-service }
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "traffic-control-service"
+        dapr.io/app-port: "6000"
+    spec:
+      containers:
+        - name: traffic-control-service
+          image: traffic-control-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6000
+          readinessProbe:
+            httpGet: { path: /healthz, port: 6000 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traffic-control-service
+  namespace: traffic-control
+spec:
+  selector: { app: traffic-control-service }
+  ports:
+    - port: 6000

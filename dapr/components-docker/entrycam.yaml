@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: entrycam
+spec:
+  type: bindings.mqtt3
+  version: v1
+  metadata:
+  - name: url
+    value: "tcp://mosquitto:1883"
+  - name: topic
+    value: trafficcontrol/entrycam
+  - name: consumerID
+    value: "{uuid}"
+scopes:
+- traffic-control-service
